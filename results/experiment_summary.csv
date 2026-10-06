@@ -1,0 +1,4 @@
+run,best_epoch,precision,recall,mAP50,mAP50-95
+v2_batch02_fixed,30,0.8939,0.7339,0.7816,0.6775
+v4_public_b05,44,0.891,0.8026,0.8235,0.6796
+v5_own_finetune,1,0.8926,0.7732,0.839,0.6886
