@@ -1,0 +1,20 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.idea/
+.vscode/
+.tmp-tests/
+
+# Local datasets and training artefacts
+datasets/
+runs/
+weights/
+*.pt
+*.onnx
+*.engine
+*.zip
+*.mp4
+*.ogg
+

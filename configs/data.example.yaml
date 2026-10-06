@@ -1,0 +1,9 @@
+path: /absolute/path/to/findmine_dataset
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: Wallet
+  1: Travel_Mug
+
