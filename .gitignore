@@ -17,4 +17,11 @@ weights/
 *.zip
 *.mp4
 *.ogg
+*.avi
+*.mov
+
+# Owner-labelled data and local evaluation outputs
+owner_manifests/
+owner_datasets/
+*.pth
 
