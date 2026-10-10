@@ -1,0 +1,5 @@
+object,model,validation_macro_f1,test_accuracy,test_macro_f1
+Travel_Mug,ResNet18,0.887,0.927,0.943
+Travel_Mug,MobileNetV3_Small,0.705,0.854,0.815
+Wallet,ResNet18,1.000,0.966,0.984
+Wallet,MobileNetV3_Small,0.968,1.000,1.000

@@ -1,0 +1,28 @@
+{
+  "detector": {
+    "test_images": 32,
+    "ground_truth_objects": 50,
+    "precision": 0.840,
+    "recall": 0.696,
+    "map_50": 0.828,
+    "map_50_95": 0.752,
+    "class_map_50": {"Wallet": 0.890, "Travel_Mug": 0.765}
+  },
+  "pipeline": {
+    "detection_confidence": 0.88,
+    "owner_confidence": 0.50,
+    "matching_iou": 0.50,
+    "matched_detections": 39,
+    "missed_objects": 11,
+    "false_positives": 7,
+    "correct_category_and_owner": 36,
+    "owner_errors": 3,
+    "detection_precision": 0.848,
+    "detection_recall": 0.780,
+    "detection_f1": 0.813,
+    "conditional_owner_accuracy": 0.923,
+    "end_to_end_precision": 0.783,
+    "end_to_end_recall": 0.720,
+    "end_to_end_f1": 0.750
+  }
+}
