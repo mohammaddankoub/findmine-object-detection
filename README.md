@@ -1,62 +1,111 @@
-# FindMine: Wallet and Travel Mug Detection
+# FindMine: Personal Object and Owner Recognition
 
-> Work in progress
+FindMine is a two-stage computer-vision pipeline for locating personal objects and
+identifying their registered owners in real-world indoor scenes. A YOLO11s detector
+first localizes wallets and travel mugs. The detected crop is then passed to a
+transfer-learned ResNet18 classifier, which predicts a registered owner or rejects the
+item as `Unknown`.
 
-FindMine is an object-detection experiment for locating a wallet and a lidded travel
-mug in cluttered indoor scenes. The current work focuses on dataset quality: keeping
-near-duplicate camera views out of different splits, collecting difficult examples,
-and checking where the detector fails before increasing the dataset size.
+This repository is a cleaned public release of a completed course project. Raw images,
+owner-labelled crops, model checkpoints, and personal data are intentionally excluded.
 
-![Predictions from held-out capture sessions](results/prediction-review.jpg)
+![FindMine qualitative results](results/findmine-qualitative-results.png)
 
-## Current dataset
+## Research question
 
-The internal dataset has 231 labelled images from several capture sessions. It is
-not included in this repository. Scene groups, rather than individual images, are
-assigned to train, validation, and test sets.
+> How accurately can a YOLO11s detector combined with transfer-learned classifiers
+> identify both the category and owner of wallets and travel mugs in real-world images?
 
-| Split | Images | Wallet boxes | Travel mug boxes |
+## Pipeline
+
+```text
+Input image -> YOLO11s detector -> object crop -> ResNet18 classifier -> owner or Unknown
+```
+
+The detector and owner classifiers were evaluated separately before the complete
+pipeline was tested. Ground-truth crops were used for classifier comparison so that
+detection errors did not influence model selection.
+
+## Dataset and split
+
+The detection dataset contained 280 images: 267 photographs collected for the project
+and 13 externally sourced wallet images. Near-duplicate views were grouped by scene
+before splitting to reduce leakage.
+
+| Split | Images | Objects | Background-only images |
 |---|---:|---:|---:|
-| Train | 194 | 125 | 146 |
-| Validation | 18 | 8 | 10 |
-| Test | 19 | 10 | 13 |
+| Train | 208 | 244 | 26 |
+| Validation | 40 | 52 | 1 |
+| Test | 32 | 50 | 1 |
 
-This grouped split matters because a random image split can place almost identical
-views in both training and validation data. That gives an optimistic result without
-showing whether the model generalises to a new scene.
+The 49 training-only support images included 36 project photographs and 13 external
+images. Detector validation and test images came only from the five photographed
+batches.
 
-## Experiments so far
+Owner classification used separate datasets for each object category:
 
-The values below are validation metrics at the epoch with the highest mAP50 in each
-run. They are useful for tracking experiments, but the validation set is still too
-small for a final model comparison.
+| Object | Train crops | Validation crops | Test crops | Registered owners |
+|---|---:|---:|---:|---:|
+| Travel mug | 156 | 40 | 41 | 8 + Unknown |
+| Wallet | 166 | 34 | 29 | 6 + Unknown |
 
-| Run | Best epoch | Precision | Recall | mAP50 | mAP50-95 |
-|---|---:|---:|---:|---:|---:|
-| v2 grouped baseline | 30 | 0.894 | 0.734 | 0.782 | 0.678 |
-| v4 public supplement | 44 | 0.891 | 0.803 | 0.824 | 0.680 |
-| v5 own-image fine-tune | 1 | 0.893 | 0.773 | 0.839 | 0.689 |
+## Final results
 
-The qualitative review still shows false positives on sofas, cushions, and other
-rectangular or textured objects. The next dataset version adds small, rotated,
-partly hidden wallets and rebuilds every split by scene before a final test run.
+### Object detection
+
+| Precision | Recall | mAP@0.5 | mAP@0.5:0.95 |
+|---:|---:|---:|---:|
+| 0.840 | 0.696 | 0.828 | 0.752 |
+
+Wallet and travel-mug mAP@0.5 were 0.890 and 0.765, respectively.
+
+### Owner classification
+
+| Object | Model | Validation macro-F1 | Test accuracy | Test macro-F1 |
+|---|---|---:|---:|---:|
+| Travel mug | ResNet18 | 0.887 | 0.927 | 0.943 |
+| Travel mug | MobileNetV3-Small | 0.705 | 0.854 | 0.815 |
+| Wallet | ResNet18 | 1.000 | 0.966 | 0.984 |
+| Wallet | MobileNetV3-Small | 0.968 | 1.000 | 1.000 |
+
+ResNet18 was selected because it gave the strongest validation macro-F1 for both object
+types.
+
+### End-to-end evaluation
+
+The detection threshold was selected on validation data and fixed at 0.88 for the final
+test. Matches required IoU >= 0.5, and owner predictions below 0.50 were rejected.
+
+| Metric | Result |
+|---|---:|
+| Ground-truth objects | 50 |
+| Correct category and owner | 36 (72%) |
+| Owner errors after a correct match | 3 |
+| Missed objects | 11 |
+| False-positive detections | 7 |
+| Conditional owner accuracy | 0.923 |
+| End-to-end precision | 0.783 |
+| End-to-end recall | 0.720 |
+| End-to-end F1 | 0.750 |
+
+Detection was the main bottleneck. The model missed 11 objects and produced seven false
+positives, including mug-like background objects. Owner recognition was usually correct
+once an object had been localized.
 
 ## Repository layout
 
 ```text
 configs/   example YOLO dataset configuration
-data/      dataset counts and publication notes
-docs/      experiment decisions and current work
-results/   validation summaries and qualitative review
-scripts/   split, train, evaluate, predict, and reporting commands
-src/       reusable scene-grouping code
-tests/     tests for split integrity and experiment reporting
+data/      dataset publication notes
+docs/      methodology and experiment history
+paper/     final extended abstract
+results/   final metrics and qualitative results
+scripts/   data splitting, training, inference, and evaluation
+src/       reusable dataset utilities
+tests/     lightweight checks for the public code
 ```
 
-Model checkpoints, raw images, videos, class notebooks, and duplicated training
-outputs are intentionally excluded.
-
-## Setup
+## Installation
 
 ```bash
 python -m venv .venv
@@ -65,39 +114,51 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-## Rebuild the grouped split
-
-```bash
-python scripts/make_grouped_split.py /path/to/source_dataset /path/to/new_dataset
-```
-
-Supplemental files without a FindMine capture name are kept in training only. The
-script refuses to overwrite an existing destination.
-
-## Train and evaluate
+## Training
 
 ```bash
 python scripts/train.py \
-  --data /path/to/new_dataset/data.yaml \
+  --data /path/to/detection_dataset/data.yaml \
   --model yolo11s.pt \
-  --name grouped-baseline \
-  --epochs 50
+  --name findmine-detector \
+  --epochs 100 \
+  --batch 16 \
+  --patience 20
 
-python scripts/evaluate.py \
-  --weights runs/grouped-baseline/weights/best.pt \
-  --data /path/to/new_dataset/data.yaml \
-  --split test
+python scripts/train_owner_classifier.py \
+  --data /path/to/wallet_owner_dataset \
+  --arch resnet18 \
+  --output runs/wallet-resnet18
 ```
 
-The test split should only be used after the model, training choices, and confidence
-threshold have been fixed.
+The owner-classifier command also supports `--arch mobilenet_v3_small`.
 
-## Run the lightweight tests
+## End-to-end inference
+
+```bash
+python scripts/run_findmine_pipeline.py \
+  --source /path/to/images \
+  --detector /path/to/detector.pt \
+  --wallet-model /path/to/wallet_classifier.pt \
+  --mug-model /path/to/mug_classifier.pt \
+  --output runs/pipeline \
+  --det-conf 0.88 \
+  --owner-conf 0.50
+```
+
+## Limitations
+
+- The number of physical objects and participants was small.
+- Repeated views remain present even though scene grouping prevents split leakage.
+- The supervised `Unknown` class is a practical rejection mechanism, not formal
+  open-set recognition.
+- Externally sourced unknown crops may introduce dataset-specific visual cues.
+- The results demonstrate a proof of concept rather than broad generalization.
+
+## Tests
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
-See the [experiment log](docs/experiment-log.md) for what changed between runs and
-the limitations that still need to be addressed.
-
+The final extended abstract is available in [`paper/`](paper/).

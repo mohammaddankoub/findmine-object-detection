@@ -1,20 +1,21 @@
 # Dataset notes
 
-The current internal dataset contains 231 images collected across multiple capture
-sessions. Images and annotations are not stored in this repository.
+The final detection dataset contains 280 labelled images. Images, labels, owner
+manifests, and model checkpoints are not stored in this public repository.
 
-| Split | Images | Background images | Wallet boxes | Travel mug boxes |
-|---|---:|---:|---:|---:|
-| Train | 194 | 3 | 125 | 146 |
-| Validation | 18 | 1 | 8 | 10 |
-| Test | 19 | 2 | 10 | 13 |
+| Split | Images | Objects | Background-only images |
+|---|---:|---:|---:|
+| Train | 208 | 244 | 26 |
+| Validation | 40 | 52 | 1 |
+| Test | 32 | 50 | 1 |
 
-Frames from the same scene are visually very similar. Splitting individual images
-at random would put near-duplicates in different sets and inflate validation scores.
-The grouped split therefore assigns all views of a `(capture batch, scene number)`
-pair to the same split.
+Near-duplicate views were grouped by capture batch and scene identifier before splitting.
+The 49 training-only support images were excluded from detector validation and test.
 
-Public product images explored during later experiments are excluded here. Their
-source and reuse licence must be verified before they can be published or included
-in a reproducible dataset release.
+Owner-recognition datasets were created from object crops. Closely related views were
+kept in the same split, and each category included a supervised `Unknown` class. These
+crops are excluded because they reveal participant identities and registered belongings.
 
+The external wallet images used during training were distributed under CC BY 4.0 by the
+original dataset publisher. The external tumbler collection may have restricted access;
+neither source is redistributed here.

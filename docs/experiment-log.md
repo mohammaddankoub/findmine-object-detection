@@ -1,30 +1,38 @@
-# Experiment log
+# Experiment history
 
-## v2: grouped Batch 02
+## Detector pilots
 
-The first useful baseline used YOLO11s at 640 px for 30 epochs. Batch 02 was split
-by capture session so that near-identical views could not cross between training,
-validation, and test sets.
+Early YOLO11s runs exposed missed wallets and false positives on sofas, cushions, and
+other rectangular or textured background objects. Labels were corrected, difficult and
+negative scenes were added, and the split was rebuilt by scene rather than by individual
+image.
 
-## v4: public training supplement
+## Final detector
 
-The v2 checkpoint was fine-tuned after adding product-style training images. The
-best validation mAP50 improved, but the validation set remained small. These public
-images are not included in this repository because their reuse licences have not
-all been verified.
+The final detector used a COCO-pretrained YOLO11s model at 640 x 640 resolution, batch
+size 16, and up to 100 epochs with early-stopping patience 20. Ultralytics selected AdamW
+automatically. Mosaic, HSV colour jitter, random scaling and translation, and horizontal
+flips were enabled; MixUp and rotation were disabled.
 
-## v5: own-image fine-tuning
+The checkpoint and the final detection confidence of 0.88 were selected on validation
+data before the test set was evaluated.
 
-The v4 checkpoint was fine-tuned again on the captured FindMine scenes. The first
-epoch produced the highest validation mAP50 in this run. Later epochs reduced
-training loss while validation performance fluctuated, which suggests that the
-small validation set is not stable enough for fine model selection.
+## Owner classifiers
 
-## Current work
+ResNet18 and MobileNetV3-Small were initialized from ImageNet weights and trained on
+224 x 224 crops for 35 epochs. The classification head was trained for five epochs while
+the backbone was frozen; the full network was then fine-tuned. Class-weighted
+cross-entropy addressed class imbalance.
 
-- Add difficult wallet examples with clutter, rotation, small scale, and occlusion.
-- Rebuild the dataset using scene-grouped 70/15/15 splits.
-- Remove or document every public image before using it in a published dataset.
-- Run a final test-set evaluation only after model and confidence threshold are fixed.
-- Review false positives on upholstery, cushions, and rectangular background objects.
+ResNet18 produced the strongest validation macro-F1 for both wallets and travel mugs and
+was therefore selected for end-to-end evaluation.
 
+## Final pipeline
+
+YOLO detections were matched to ground truth at IoU >= 0.5. The detected crops were sent
+to the category-specific owner classifier, with predictions below 0.50 rejected as
+`Unknown`.
+
+Out of 50 ground-truth test objects, 39 were detected and 36 received the correct owner.
+Eleven objects were missed, three matched objects had an owner error, and seven additional
+detections were false positives. The resulting end-to-end F1 was 0.750.
